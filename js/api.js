@@ -1,7 +1,7 @@
 // API helper for calling Supabase Edge Functions
 // Replace YOUR_PROJECT_URL with your actual Supabase project URL
 
-const API_BASE_URL = 'https://tcjkmswrhvpcbwgvtdhp.supabase.co'
+const API_BASE_URL = 'https://tcjkmswrhvpcbwgvtdhp.supabase.co/functions/v1'
 
 // Helper to make API calls
 async function callFunction(functionName, options = {}) {
