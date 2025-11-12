@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error</title>
+  <style>
+    body { font-family: Arial; padding: 50px; text-align: center; background: #f5f5f5; }
+    .error { background: #fee2e2; color: #991b1b; padding: 30px; border-radius: 10px; max-width: 500px; margin: 0 auto; }
+    h1 { margin: 0 0 20px 0; }
+    a { color: #13B5EA; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="error">
+    <h1>⚠️ Connection Error</h1>
+    <div id="errorMsg">Something went wrong</div>
+    <p style="margin-top: 30px;">
+      <a href="index.html">← Try Again</a>
+    </p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const msg = params.get('message');
+    if (msg) document.getElementById('errorMsg').textContent = decodeURIComponent(msg);
+  </script>
+</body>
+</html>
+```
+
+**4. Click "Commit changes"**
+
+---
+
+### **Step 6: Enable GitHub Pages**
+
+**1. In your repository, click "Settings"** (top menu bar)
+
+**2. Scroll down on the left sidebar to "Pages"** (under "Code and automation")
+
+**3. Under "Build and deployment":**
+- **Source:** Deploy from a branch
+- **Branch:** main (or master)
+- **Folder:** / (root)
+- Click **"Save"**
+
+**4. Wait 1-2 minutes** for deployment
+
+**5. Your site will be live at:**
+```
+https://clarize-vera.github.io/xero-integration-frontend/
