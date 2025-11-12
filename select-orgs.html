@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Organizations</title>
+  <script src="js/api.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h1 { color: #13B5EA; margin-bottom: 10px; }
+    .subtitle { color: #6B7280; margin-bottom: 30px; }
+    .org-item {
+      padding: 15px;
+      margin: 10px 0;
+      border: 2px solid #E5E7EB;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .org-item:hover { border-color: #13B5EA; background: #F0F9FF; }
+    .org-item.selected { border-color: #13B5EA; background: #E0F2FE; }
+    .org-item input[type="checkbox"] {
+      margin-right: 12px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .org-name { font-weight: 600; font-size: 16px; color: #111827; }
+    .org-id { font-size: 12px; color: #6B7280; margin-top: 4px; }
+    button {
+      padding: 12px 32px;
+      background: #13B5EA;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover { background: #0E8AB8; }
+    button:disabled { background: #D1D5DB; cursor: not-allowed; }
+    .select-all {
+      margin-bottom: 20px;
+      padding: 12px;
+      background: #F9FAFB;
+      border-radius: 6px;
+    }
+    .loading { text-align: center; padding: 40px; color: #6B7280; }
+    .error { background: #FEE2E2; color: #991B1B; padding: 16px; border-radius: 6px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏢 Select Organizations</h1>
+    <p class="subtitle">Choose which Xero organizations you'd like to connect</p>
+    
+    <div id="content">
+      <div class="loading">Loading organizations...</div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search)
+    const sessionId = urlParams.get('session')
+
+    if (!sessionId) {
+      document.getElementById('content').innerHTML = '<div class="error">Invalid session. Please <a href="index.html">try again</a>.</div>'
+    } else {
+      loadOrganizations()
+    }
+
+    async function loadOrganizations() {
+      try {
+        const data = await API.getSession(sessionId)
+        const tenants = data.tenants
+
+        if (!tenants || tenants.length === 0) {
+          throw new Error('No organizations found')
+        }
+
+        document.getElementById('content').innerHTML = `
+          <div class="select-all">
+            <label>
+              <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
+              Select All Organizations
+            </label>
+          </div>
+
+          <div id="orgList">
+            ${tenants.map(tenant => `
+              <div class="org-item" onclick="toggleOrg('${tenant.tenantId}')">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    id="org-${tenant.tenantId}"
+                    value="${tenant.tenantId}"
+                    onclick="event.stopPropagation()"
+                    onchange="updateUI()"
+                  >
+                  <span class="org-name">${tenant.tenantName}</span>
+                  <div class="org-id">ID: ${tenant.tenantId}</div>
+                </label>
+              </div>
+            `).join('')}
+          </div>
+
+          <div>
+            <button id="submitBtn" onclick="saveOrganizations()" disabled>
+              Connect Selected Organizations
+            </button>
+            <p id="selectedCount" style="margin-top: 10px; color: #6B7280; font-size: 14px;">
+              0 organizations selected
+            </p>
+          </div>
+        `
+      } catch (error) {
+        document.getElementById('content').innerHTML = `
+          <div class="error">Error: ${error.message}</div>
+          <a href="index.html">Return to home</a>
+        `
+      }
+    }
+
+    function toggleOrg(tenantId) {
+      const checkbox = document.getElementById('org-' + tenantId)
+      checkbox.checked = !checkbox.checked
+      updateUI()
+    }
+
+    function toggleAll(checkbox) {
+      const allCheckboxes = document.querySelectorAll('input[value]')
+      allCheckboxes.forEach(cb => cb.checked = checkbox.checked)
+      updateUI()
+    }
+
+    function updateUI() {
+      const checked = document.querySelectorAll('input[value]:checked')
+      const submitBtn = document.getElementById('submitBtn')
+      const selectedCount = document.getElementById('selectedCount')
+      
+      submitBtn.disabled = checked.length === 0
+      selectedCount.textContent = checked.length + ' organization' + (checked.length !== 1 ? 's' : '') + ' selected'
+
+      // Update visual state
+      document.querySelectorAll('.org-item').forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]')
+        if (checkbox && checkbox.checked) {
+          item.classList.add('selected')
+        } else {
+          item.classList.remove('selected')
+        }
+      })
+
+      // Update select all
+      const allCheckboxes = document.querySelectorAll('input[value]')
+      const selectAll = document.getElementById('selectAll')
+      if (selectAll) {
+        selectAll.checked = checked.length === allCheckboxes.length
+      }
+    }
+
+    async function saveOrganizations() {
+      const checked = Array.from(document.querySelectorAll('input[value]:checked'))
+      const selectedTenantIds = checked.map(cb => cb.value)
+
+      if (selectedTenantIds.length === 0) return
+
+      const submitBtn = document.getElementById('submitBtn')
+      submitBtn.disabled = true
+      submitBtn.textContent = 'Connecting...'
+
+      try {
+        const result = await API.saveOrganizations(sessionId, selectedTenantIds)
+        
+        // Success! Redirect to organizations page
+        window.location.href = 'organizations.html?success=' + result.count
+      } catch (error) {
+        alert('Error: ' + error.message)
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Connect Selected Organizations'
+      }
+    }
+  </script>
+</body>
+</html>
